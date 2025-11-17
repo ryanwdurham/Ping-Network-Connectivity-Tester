@@ -30,7 +30,7 @@ Features
 
 Watch a video of it in action:  https://www.loom.com/share/9bac45d6d0074890bee0bc6e4e01709b
 
-View a sample connetivity report here:  https://ryanwdurham.github.io/Ping-Network-Connectivity-Tester/connectivity_report.html
+View a html connectivity report here:  https://ryanwdurham.github.io/Ping-Network-Connectivity-Tester/connectivity_report.html
 
 
 Requirements
