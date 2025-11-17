@@ -28,6 +28,9 @@ Features
 ✔ Clean console output for quick checks  
 
 
+Watch a video of it in action:  https://www.loom.com/share/9bac45d6d0074890bee0bc6e4e01709b 
+
+
 Requirements
 ------------
 This script uses standard Python libraries with no external dependencies
