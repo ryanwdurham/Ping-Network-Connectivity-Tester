@@ -1,0 +1,652 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Connectivity Report</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .summary-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .summary-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .success { color: #28a745; }
+        .warning { color: #ffc107; }
+        .danger { color: #dc3545; }
+
+        .content {
+            padding: 30px;
+        }
+
+        .target-section {
+            margin-bottom: 40px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .target-header {
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .target-header.failed {
+            background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+        }
+
+        .target-header h2 {
+            font-size: 1.5em;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+
+        .target-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .detail-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #007bff;
+        }
+
+        .detail-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: bold;
+        }
+
+        .port-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .port-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .port-open {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .port-closed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        .chart-container h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        @media (max-width: 768px) {
+            .target-details {
+                grid-template-columns: 1fr;
+            }
+
+            .summary {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Network Connectivity Report</h1>
+            <p>Generated on November 17, 2025 at 02:54 PM</p>
+        </div>
+
+        <div class="summary">
+            <div class="summary-card">
+                <h3>Targets Tested</h3>
+                <div class="value">5</div>
+            </div>
+            <div class="summary-card">
+                <h3>Successful Pings</h3>
+                <div class="value success">5</div>
+            </div>
+            <div class="summary-card">
+                <h3>DNS Resolutions</h3>
+                <div class="value success">5</div>
+            </div>
+            <div class="summary-card">
+                <h3>Open Ports</h3>
+                <div class="value warning">11</div>
+            </div>
+        </div>
+
+        <div class="content">
+
+            <div class="target-section">
+                <div class="target-header ">
+                    <h2>8.8.8.8</h2>
+                    <span class="status-badge">✅ ONLINE</span>
+                </div>
+
+                <div class="target-details">
+            
+                    <div class="detail-card">
+                        <h3>🔍 DNS Resolution</h3>
+                        <div class="metric">
+                            <span class="metric-label">Status:</span>
+                            <span class="metric-value success">
+                                ✅ Success
+                            </span>
+                        </div>
+                        <div class="metric"><span class="metric-label">IP Address:</span><span class="metric-value">8.8.8.8</span></div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>📡 Ping Statistics</h3>
+                        <div class="metric">
+                            <span class="metric-label">Packets Sent:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packets Received:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packet Loss:</span>
+                            <span class="metric-value success">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Avg Response:</span>
+                            <span class="metric-value">8ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Min/Max Response:</span>
+                            <span class="metric-value">7ms / 10ms</span>
+                        </div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>🚪 Port Connectivity</h3>
+                        <div class="port-grid">
+                
+                        <div class="port-item port-closed">
+                            ❌ 80
+                        </div>
+                    
+                        <div class="port-item port-open">
+                            ✅ 443<br><small>17.1ms</small>
+                        </div>
+                    
+                        <div class="port-item port-open">
+                            ✅ 53<br><small>14.6ms</small>
+                        </div>
+                    
+                        </div>
+                    </div>
+                
+                </div>
+            </div>
+            
+            <div class="target-section">
+                <div class="target-header ">
+                    <h2>1.1.1.1</h2>
+                    <span class="status-badge">✅ ONLINE</span>
+                </div>
+
+                <div class="target-details">
+            
+                    <div class="detail-card">
+                        <h3>🔍 DNS Resolution</h3>
+                        <div class="metric">
+                            <span class="metric-label">Status:</span>
+                            <span class="metric-value success">
+                                ✅ Success
+                            </span>
+                        </div>
+                        <div class="metric"><span class="metric-label">IP Address:</span><span class="metric-value">1.1.1.1</span></div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>📡 Ping Statistics</h3>
+                        <div class="metric">
+                            <span class="metric-label">Packets Sent:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packets Received:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packet Loss:</span>
+                            <span class="metric-value success">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Avg Response:</span>
+                            <span class="metric-value">7ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Min/Max Response:</span>
+                            <span class="metric-value">6ms / 10ms</span>
+                        </div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>🚪 Port Connectivity</h3>
+                        <div class="port-grid">
+                
+                        <div class="port-item port-open">
+                            ✅ 80<br><small>10.8ms</small>
+                        </div>
+                    
+                        <div class="port-item port-open">
+                            ✅ 443<br><small>5.7ms</small>
+                        </div>
+                    
+                        <div class="port-item port-open">
+                            ✅ 53<br><small>7.9ms</small>
+                        </div>
+                    
+                        </div>
+                    </div>
+                
+                </div>
+            </div>
+            
+            <div class="target-section">
+                <div class="target-header ">
+                    <h2>www.google.com</h2>
+                    <span class="status-badge">✅ ONLINE</span>
+                </div>
+
+                <div class="target-details">
+            
+                    <div class="detail-card">
+                        <h3>🔍 DNS Resolution</h3>
+                        <div class="metric">
+                            <span class="metric-label">Status:</span>
+                            <span class="metric-value success">
+                                ✅ Success
+                            </span>
+                        </div>
+                        <div class="metric"><span class="metric-label">IP Address:</span><span class="metric-value">142.251.33.68</span></div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>📡 Ping Statistics</h3>
+                        <div class="metric">
+                            <span class="metric-label">Packets Sent:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packets Received:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packet Loss:</span>
+                            <span class="metric-value success">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Avg Response:</span>
+                            <span class="metric-value">9ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Min/Max Response:</span>
+                            <span class="metric-value">7ms / 15ms</span>
+                        </div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>🚪 Port Connectivity</h3>
+                        <div class="port-grid">
+                
+                        <div class="port-item port-open">
+                            ✅ 80<br><small>10.7ms</small>
+                        </div>
+                    
+                        <div class="port-item port-open">
+                            ✅ 443<br><small>9.6ms</small>
+                        </div>
+                    
+                        <div class="port-item port-closed">
+                            ❌ 53
+                        </div>
+                    
+                        </div>
+                    </div>
+                
+                </div>
+            </div>
+            
+            <div class="target-section">
+                <div class="target-header ">
+                    <h2>www.github.com</h2>
+                    <span class="status-badge">✅ ONLINE</span>
+                </div>
+
+                <div class="target-details">
+            
+                    <div class="detail-card">
+                        <h3>🔍 DNS Resolution</h3>
+                        <div class="metric">
+                            <span class="metric-label">Status:</span>
+                            <span class="metric-value success">
+                                ✅ Success
+                            </span>
+                        </div>
+                        <div class="metric"><span class="metric-label">IP Address:</span><span class="metric-value">140.82.116.3</span></div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>📡 Ping Statistics</h3>
+                        <div class="metric">
+                            <span class="metric-label">Packets Sent:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packets Received:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packet Loss:</span>
+                            <span class="metric-value success">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Avg Response:</span>
+                            <span class="metric-value">38ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Min/Max Response:</span>
+                            <span class="metric-value">6ms / 132ms</span>
+                        </div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>🚪 Port Connectivity</h3>
+                        <div class="port-grid">
+                
+                        <div class="port-item port-open">
+                            ✅ 80<br><small>818.2ms</small>
+                        </div>
+                    
+                        <div class="port-item port-open">
+                            ✅ 443<br><small>39.4ms</small>
+                        </div>
+                    
+                        <div class="port-item port-closed">
+                            ❌ 53
+                        </div>
+                    
+                        </div>
+                    </div>
+                
+                </div>
+            </div>
+            
+            <div class="target-section">
+                <div class="target-header ">
+                    <h2>www.Amazon.com</h2>
+                    <span class="status-badge">✅ ONLINE</span>
+                </div>
+
+                <div class="target-details">
+            
+                    <div class="detail-card">
+                        <h3>🔍 DNS Resolution</h3>
+                        <div class="metric">
+                            <span class="metric-label">Status:</span>
+                            <span class="metric-value success">
+                                ✅ Success
+                            </span>
+                        </div>
+                        <div class="metric"><span class="metric-label">IP Address:</span><span class="metric-value">18.238.215.27</span></div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>📡 Ping Statistics</h3>
+                        <div class="metric">
+                            <span class="metric-label">Packets Sent:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packets Received:</span>
+                            <span class="metric-value">4</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Packet Loss:</span>
+                            <span class="metric-value success">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Avg Response:</span>
+                            <span class="metric-value">14ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Min/Max Response:</span>
+                            <span class="metric-value">8ms / 28ms</span>
+                        </div>
+                    </div>
+                
+                    <div class="detail-card">
+                        <h3>🚪 Port Connectivity</h3>
+                        <div class="port-grid">
+                
+                        <div class="port-item port-open">
+                            ✅ 80<br><small>31.9ms</small>
+                        </div>
+                    
+                        <div class="port-item port-open">
+                            ✅ 443<br><small>30.2ms</small>
+                        </div>
+                    
+                        <div class="port-item port-closed">
+                            ❌ 53
+                        </div>
+                    
+                        </div>
+                    </div>
+                
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>📊 Response Time Analysis</h3>
+                <canvas id="responseTimeChart" width="400" height="200"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>🎯 Success Rate Overview</h3>
+                <canvas id="successRateChart" width="400" height="200"></canvas>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Response Time Chart
+        const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
+        const responseTimeChart = new Chart(responseTimeCtx, {
+            type: 'bar',
+            data: {
+                labels: ["8.8.8.8", "1.1.1.1", "www.google.com", "www.github.com", "www.Amazon.com"],
+                datasets: [{
+                    label: 'Average Response Time (ms)',
+                    data: [8, 7, 9, 38, 14],
+                    backgroundColor: ["rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)"],
+                    borderColor: ["rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)", "rgba(40, 167, 69, 0.8)"],
+                    borderWidth: 2,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Response Time (ms)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Success Rate Chart
+        const successRateCtx = document.getElementById('successRateChart').getContext('2d');
+        const successCount = 5;
+        const failureCount = 0;
+
+        const successRateChart = new Chart(successRateCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Successful', 'Failed'],
+                datasets: [{
+                    data: [successCount, failureCount],
+                    backgroundColor: ['rgba(40, 167, 69, 0.8)', 'rgba(220, 53, 69, 0.8)'],
+                    borderColor: ['rgba(40, 167, 69, 1)', 'rgba(220, 53, 69, 1)'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 14
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
